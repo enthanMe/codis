@@ -94,7 +94,7 @@ func MigrateSingleSlot(zkConn zkhelper.Conn, slotId, fromGroup, toGroup int, del
 			}
 		}
 		_, remain, err = sendRedisMigrateCmd(c, slotId, toMaster.Addr)
-		if remain%500 == 0 && remain > 0 {
+		if remain%500 == 0 && remain >= 0 {
 			log.Info("remain:", remain)
 		}
 		if err != nil {

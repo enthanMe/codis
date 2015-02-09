@@ -117,7 +117,7 @@ func Rebalance(zkConn zkhelper.Conn, delay int) error {
 					slot := node.CurSlots[len(node.CurSlots)-1]
 					// create a migration task
 					t := &MigrateTask{
-						MigrateTaskForm: MigrateTaskForm{
+						MigrateTaskInfo: MigrateTaskInfo{
 							Delay:      delay,
 							FromSlot:   slot,
 							ToSlot:     slot,

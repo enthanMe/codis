@@ -186,7 +186,7 @@ func runDashboard(addr string, httpLogFile string) {
 	m.Get("/api/migrate/tasks", apiGetMigrateTasks)
 	m.Delete("/api/migrate/pending_task/:id/remove", apiRemovePendingMigrateTask)
 	m.Delete("/api/migrate/task/:id/stop", apiStopMigratingTask)
-	m.Post("/api/migrate", binding.Json(MigrateTaskForm{}), apiDoMigrate)
+	m.Post("/api/migrate", binding.Json(MigrateTaskInfo{}), apiDoMigrate)
 
 	m.Post("/api/rebalance", apiRebalance)
 	m.Get("/api/rebalance/status", apiRebalanceStatus)
@@ -210,7 +210,7 @@ func runDashboard(addr string, httpLogFile string) {
 		}
 	}()
 
-	go migrateTaskWorker()
+	//go migrateTaskWorker()
 
 	m.RunOnAddr(addr)
 }

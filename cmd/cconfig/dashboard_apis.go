@@ -104,7 +104,7 @@ func apiRedisStat(param martini.Params) (int, string) {
 	return 200, string(b)
 }
 
-func apiDoMigrate(taskForm MigrateTaskForm, param martini.Params) (int, string) {
+func apiDoMigrate(taskForm MigrateTaskInfo, param martini.Params) (int, string) {
 	// do migrate async
 	taskForm.Percent = 0
 	taskForm.Status = "pending"
@@ -115,14 +115,11 @@ func apiDoMigrate(taskForm MigrateTaskForm, param martini.Params) (int, string) 
 	}
 	taskForm.Id = u.String()
 	task := &MigrateTask{
-		MigrateTaskForm: taskForm,
+		MigrateTaskInfo: taskForm,
 		stopChan:        make(chan struct{}),
 	}
 
-	lck.Lock()
-	pendingMigrateTask.PushBack(task)
-	lck.Unlock()
-
+	// TODO migrate mgr post task
 	return jsonRetSucc()
 }
 
@@ -170,36 +167,14 @@ func apiRebalance(param martini.Params) (int, string) {
 }
 
 func apiGetMigrateTasks() (int, string) {
-	lck.RLock()
-	defer lck.RUnlock()
-
-	var tasks []*MigrateTask
-	for e := pendingMigrateTask.Front(); e != nil; e = e.Next() {
-		tasks = append(tasks, e.Value.(*MigrateTask))
-	}
-
-	b, _ := json.MarshalIndent(tasks, " ", "  ")
-
-	return 200, string(b)
+	return 200, ""
 }
 
 func apiRemovePendingMigrateTask(param martini.Params) (int, string) {
-	lck.Lock()
-	defer lck.Unlock()
-	id := param["id"]
-	if removePendingMigrateTask(id) == true {
-		return jsonRetSucc()
-	}
 	return 500, "remove task error"
 }
 
 func apiStopMigratingTask(param martini.Params) (int, string) {
-	lck.RLock()
-	defer lck.RUnlock()
-	if curMigrateTask != nil {
-		curMigrateTask.Status = "stopping"
-		curMigrateTask.stopChan <- struct{}{}
-	}
 	return jsonRetSucc()
 }
 
@@ -233,7 +208,7 @@ func apiMigrateStatus() (int, string) {
 
 	b, err := json.MarshalIndent(map[string]interface{}{
 		"migrate_slots": migrateSlots,
-		"migrate_task":  curMigrateTask,
+		"migrate_task":  nil,
 	}, " ", "  ")
 	return 200, string(b)
 }
@@ -442,7 +417,7 @@ func apiRemoveServerFromGroup(server models.Server, param martini.Params) (int, 
 	}()
 
 	serverGroup := models.NewServerGroup(productName, groupId)
-	err := serverGroup.RemoveServer(conn, server)
+	err := serverGroup.RemoveServer(conn, &server)
 	if err != nil {
 		log.Warning(err)
 		return 500, err.Error()
