@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	log "github.com/ngaut/logging"
 	"github.com/ngaut/zkhelper"
 
 	"github.com/wandoulabs/codis/pkg/utils"
@@ -166,13 +167,24 @@ func (self *ServerGroup) Remove(zkConn zkhelper.Conn) error {
 	return errors.Trace(err)
 }
 
-func (self *ServerGroup) RemoveServer(zkConn zkhelper.Conn, s *Server) error {
+func (self *ServerGroup) RemoveServer(zkConn zkhelper.Conn, addr string) error {
+	zkPath := fmt.Sprintf("/zk/codis/db_%s/servers/group_%d/%s", self.ProductName, self.Id, addr)
+	data, _, err := zkConn.Get(zkPath)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	var s Server
+	err = json.Unmarshal(data, &s)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	log.Info(s)
 	if s.Type == SERVER_TYPE_MASTER {
 		return errors.New("cannot remove master, use promote first")
 	}
 
-	zkPath := fmt.Sprintf("/zk/codis/db_%s/servers/group_%d/%s", self.ProductName, self.Id, s.Addr)
-	err := zkConn.Delete(zkPath, -1)
+	err = zkConn.Delete(zkPath, -1)
 	if err != nil {
 		return errors.Trace(err)
 	}

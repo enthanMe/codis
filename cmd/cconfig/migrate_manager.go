@@ -35,10 +35,11 @@ type MigrateManager struct {
 	// pre migrate check functions
 	preCheck     MigrateTaskCheckFunc
 	pendingTasks *list.List
-	lck          sync.RWMutex
+	runningTask  *MigrateTask
 	// zkConn
 	zkConn      zkhelper.Conn
 	productName string
+	lck         sync.RWMutex
 }
 
 func (m *MigrateManager) createNode() error {
@@ -87,11 +88,13 @@ func (m *MigrateManager) loop() error {
 			continue
 		}
 
+		// get pending task, and run
 		m.lck.Lock()
 		m.pendingTasks.Remove(ele)
+		t := ele.Value.(*MigrateTask)
+		m.runningTask = t
 		m.lck.Unlock()
 
-		t := ele.Value.(*MigrateTask)
 		log.Info("start migrate task pre-check")
 		if m.preCheck != nil && !m.preCheck(t) {
 			log.Error("migrate task pre-check error", t)
@@ -101,11 +104,19 @@ func (m *MigrateManager) loop() error {
 		// do migrate
 		err := t.run()
 		if err != nil {
+			log.Error(err)
 		}
+
+		// reset runningtask
+		m.lck.Lock()
+		m.runningTask = nil
+		m.lck.Unlock()
 	}
 }
 
 func (m *MigrateManager) StopTask(taskId string) error {
+	m.lck.Lock()
+	defer m.lck.Unlock()
 	return nil
 }
 

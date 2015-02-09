@@ -4,7 +4,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/wandoulabs/codis/pkg/models"
@@ -26,9 +25,9 @@ func cmdProxy(argv []string) (err error) {
 	}
 	log.Debug(args)
 
-	zkLock.Lock(fmt.Sprintf("proxy, %+v", argv))
+	globalEnv.ZkLock.Lock(fmt.Sprintf("proxy, %+v", argv))
 	defer func() {
-		err := zkLock.Unlock()
+		err := globalEnv.ZkLock.Unlock()
 		if err != nil {
 			log.Error(err)
 		}
@@ -50,20 +49,9 @@ func cmdProxy(argv []string) (err error) {
 }
 
 func runProxyList() error {
-	proxies, err := models.ProxyList(zkConn, productName, nil)
-	if err != nil {
-		log.Warning(err)
-		return err
-	}
-	b, _ := json.MarshalIndent(proxies, " ", "  ")
-	fmt.Println(string(b))
 	return nil
 }
 
 func runSetProxyStatus(proxyName, status string) error {
-	if err := models.SetProxyStatus(zkConn, productName, proxyName, status); err != nil {
-		log.Warning(err)
-		return err
-	}
 	return nil
 }

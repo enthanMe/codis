@@ -34,9 +34,9 @@ options:
 		return errors.Trace(runRemoveLock())
 	}
 
-	zkLock.Lock(fmt.Sprintf("action, %+v", argv))
+	globalEnv.ZkLock.Lock(fmt.Sprintf("action, %+v", argv))
 	defer func() {
-		err := zkLock.Unlock()
+		err := globalEnv.ZkLock.Unlock()
 		if err != nil {
 			log.Info(err)
 		}
@@ -65,16 +65,16 @@ options:
 
 func runGCKeepN(keep int) error {
 	log.Info("gc...")
-	return models.ActionGC(zkConn, productName, models.GC_TYPE_N, keep)
+	return models.ActionGC(globalEnv.ZkConn, globalEnv.ProductName, models.GC_TYPE_N, keep)
 }
 
 func runGCKeepNSec(secs int) error {
 	log.Info("gc...")
-	return models.ActionGC(zkConn, productName, models.GC_TYPE_SEC, secs)
+	return models.ActionGC(globalEnv.ZkConn, globalEnv.ProductName, models.GC_TYPE_SEC, secs)
 }
 
 func runRemoveLock() error {
 	log.Info("removing lock...")
-	zkLock.Unlock()
-	return errors.Trace(models.ForceRemoveLock(zkConn, productName))
+	globalEnv.ZkLock.Unlock()
+	return errors.Trace(models.ForceRemoveLock(globalEnv.ZkConn, globalEnv.ProductName))
 }

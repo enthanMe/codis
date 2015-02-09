@@ -39,7 +39,7 @@ func (t *MigrateTask) run() error {
 			log.Info("start migrate slot:", slotId)
 
 			// set slot status
-			s, err := models.GetSlot(t.zkConn, productName, slotId)
+			s, err := models.GetSlot(t.zkConn, t.productName, slotId)
 			if err != nil {
 				log.Error(err)
 				return err
@@ -120,7 +120,7 @@ func preMigrateCheck(t *MigrateTask) (bool, error) {
 	conn := CreateZkConn()
 	defer conn.Close()
 
-	slots, err := models.GetMigratingSlots(conn, productName)
+	slots, err := models.GetMigratingSlots(conn, t.productName)
 
 	if err != nil {
 		return false, errors.Trace(err)
