@@ -124,7 +124,11 @@ func cmdSlot(argv []string) (err error) {
 
 func runSlotInit(isForce bool) error {
 	var v interface{}
-	err := callApi(METHOD_POST, "/api/slots/init", nil, &v)
+	url := "/api/slots/init"
+	if isForce {
+		url += "?is_force=1"
+	}
+	err := callApi(METHOD_POST, url, nil, &v)
 	if err != nil {
 		return err
 	}

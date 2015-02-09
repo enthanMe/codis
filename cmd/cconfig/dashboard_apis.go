@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strconv"
 	"sync"
 	"time"
@@ -95,9 +96,27 @@ func apiGetServerGroupList() (int, string) {
 	return 200, string(b)
 }
 
-func apiInitSlots() (int, string) {
+func apiInitSlots(r *http.Request) (int, string) {
+	r.ParseForm()
+
+	isForce := false
+	val := r.FormValue("is_force")
+	if len(val) > 0 && (val == "1" || val == "true") {
+		isForce = true
+	}
+
 	conn := CreateZkConn()
 	defer conn.Close()
+
+	if !isForce {
+		s, err := models.Slots(conn, globalEnv.ProductName)
+		if err != nil {
+			return 500, err.Error()
+		}
+		if len(s) > 0 {
+			return 500, "slots already initialized, use 'force' flag and try again."
+		}
+	}
 
 	if err := models.InitSlotSet(conn, globalEnv.ProductName, models.DEFAULT_SLOT_NUM); err != nil {
 		log.Warning(err)
