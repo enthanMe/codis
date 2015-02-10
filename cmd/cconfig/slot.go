@@ -67,14 +67,6 @@ func cmdSlot(argv []string) (err error) {
 		return runRebalance(delay)
 	}
 
-	globalEnv.ZkLock.Lock(fmt.Sprintf("slot, %+v", argv))
-	defer func() {
-		err := globalEnv.ZkLock.Unlock()
-		if err != nil {
-			log.Error(err)
-		}
-	}()
-
 	if args["init"].(bool) {
 		force := args["-f"].(bool)
 		return runSlotInit(force)
@@ -134,20 +126,37 @@ func runSlotInit(isForce bool) error {
 	}
 	fmt.Println(jsonify(v))
 	return nil
-
-	return nil
 }
 
 func runSlotInfo(slotId int) error {
+	var v interface{}
+	err := callApi(METHOD_GET, fmt.Sprintf("/api/slot/%d", slotId), nil, &v)
+	if err != nil {
+		return err
+	}
+	fmt.Println(jsonify(v))
 	return nil
 }
 
 func runSlotRangeSet(fromSlotId, toSlotId int, groupId int, status string) error {
+	t := RangeSetTask{
+		FromSlot:   fromSlotId,
+		ToSlot:     toSlotId,
+		NewGroupId: groupId,
+		Status:     status,
+	}
+
+	var v interface{}
+	err := callApi(METHOD_POST, "/api/slot", t, &v)
+	if err != nil {
+		return err
+	}
+	fmt.Println(jsonify(v))
 	return nil
 }
 
 func runSlotSet(slotId int, groupId int, status string) error {
-	return nil
+	return runSlotRangeSet(slotId, slotId, groupId, status)
 }
 
 func runSlotMigrate(fromSlotId, toSlotId int, newGroupId int, delay int) error {

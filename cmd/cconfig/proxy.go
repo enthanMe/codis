@@ -25,16 +25,7 @@ func cmdProxy(argv []string) (err error) {
 	}
 	log.Debug(args)
 
-	globalEnv.ZkLock.Lock(fmt.Sprintf("proxy, %+v", argv))
-	defer func() {
-		err := globalEnv.ZkLock.Unlock()
-		if err != nil {
-			log.Error(err)
-		}
-	}()
-
 	if args["list"].(bool) {
-		log.Warning(err)
 		return runProxyList()
 	}
 
@@ -49,9 +40,25 @@ func cmdProxy(argv []string) (err error) {
 }
 
 func runProxyList() error {
+	var v interface{}
+	err := callApi(METHOD_GET, "/api/proxy/list", nil, &v)
+	if err != nil {
+		return err
+	}
+	fmt.Println(jsonify(v))
 	return nil
 }
 
 func runSetProxyStatus(proxyName, status string) error {
+	info := models.ProxyInfo{
+		Id:    proxyName,
+		State: status,
+	}
+	var v interface{}
+	err := callApi(METHOD_POST, "/api/proxy", info, &v)
+	if err != nil {
+		return err
+	}
+	fmt.Println(jsonify(v))
 	return nil
 }

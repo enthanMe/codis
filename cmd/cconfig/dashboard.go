@@ -220,12 +220,16 @@ func runDashboard(addr string, httpLogFile string) {
 	m.Get("/api/rebalance/status", apiRebalanceStatus)
 
 	m.Get("/api/slot/list", apiGetSlots)
+	m.Get("/api/slot/:id", apiGetSingleSlot)
 	m.Post("/api/slots/init", apiInitSlots)
 	m.Get("/api/slots", apiGetSlots)
 	m.Post("/api/slot", binding.Json(RangeSetTask{}), apiSlotRangeSet)
 	m.Get("/api/proxy/list", apiGetProxyList)
 	m.Get("/api/proxy/debug/vars", apiGetProxyDebugVars)
 	m.Post("/api/proxy", binding.Json(models.ProxyInfo{}), apiSetProxyStatus)
+
+	m.Get("/api/action/gc", apiActionGC)
+	m.Get("/api/force_remove_locks", apiForceRemoveLocks)
 
 	m.Get("/slots", pageSlots)
 	m.Get("/", func(r render.Render) {

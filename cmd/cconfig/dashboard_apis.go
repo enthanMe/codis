@@ -22,9 +22,10 @@ import (
 )
 
 type RangeSetTask struct {
-	FromSlot   int `json:"from"`
-	ToSlot     int `json:"to"`
-	NewGroupId int `json:"new_group"`
+	FromSlot   int    `json:"from"`
+	ToSlot     int    `json:"to"`
+	NewGroupId int    `json:"new_group"`
+	Status     string `json:"status"`
 }
 
 func apiGetProxyDebugVars() (int, string) {
@@ -478,6 +479,24 @@ func apiGetProxyList(param martini.Params) (int, string) {
 	return 200, string(b)
 }
 
+func apiGetSingleSlot(param martini.Params) (int, string) {
+	id, err := strconv.Atoi(param["id"])
+	if err != nil {
+		return 500, err.Error()
+	}
+	conn := CreateZkConn()
+	defer conn.Close()
+
+	slot, err := models.GetSlot(conn, globalEnv.ProductName, id)
+	if err != nil {
+		log.Warning(errors.Trace(err))
+		return 500, err.Error()
+	}
+
+	b, err := json.MarshalIndent(slot, " ", "  ")
+	return 200, string(b)
+}
+
 func apiGetSlots() (int, string) {
 	conn := CreateZkConn()
 	defer conn.Close()
@@ -493,6 +512,7 @@ func apiGetSlots() (int, string) {
 func apiSlotRangeSet(task RangeSetTask) (int, string) {
 	conn := CreateZkConn()
 	defer conn.Close()
+
 	lock := utils.GetZkLock(conn, globalEnv.ProductName)
 	lock.Lock(fmt.Sprintf("set slot range, %+v", task))
 	defer func() {
@@ -502,12 +522,56 @@ func apiSlotRangeSet(task RangeSetTask) (int, string) {
 		}
 	}()
 
-	err := models.SetSlotRange(conn, globalEnv.ProductName, task.FromSlot, task.ToSlot, task.NewGroupId, models.SLOT_STATUS_ONLINE)
+	// default set online
+	if len(task.Status) == 0 {
+		task.Status = string(models.SLOT_STATUS_ONLINE)
+	}
+
+	err := models.SetSlotRange(conn, globalEnv.ProductName, task.FromSlot, task.ToSlot, task.NewGroupId, models.SlotStatus(task.Status))
 
 	if err != nil {
 		log.Warning(err)
 		return 500, err.Error()
 	}
 
+	return jsonRetSucc()
+}
+
+// actions
+func apiActionGC(param martini.Params) (int, string) {
+	keep, _ := strconv.Atoi(param["keep"])
+	secs, _ := strconv.Atoi(param["secs"])
+
+	conn := CreateZkConn()
+	defer conn.Close()
+	lock := utils.GetZkLock(conn, globalEnv.ProductName)
+	lock.Lock(fmt.Sprintf("action gc"))
+	defer func() {
+		err := lock.Unlock()
+		if err != nil {
+			log.Warning(err)
+		}
+	}()
+
+	var err error
+	if keep > 0 {
+		err = models.ActionGC(conn, globalEnv.ProductName, models.GC_TYPE_N, keep)
+	} else if secs > 0 {
+		err = models.ActionGC(conn, globalEnv.ProductName, models.GC_TYPE_SEC, secs)
+	}
+	if err != nil {
+		return 500, err.Error()
+	}
+	return jsonRetSucc()
+}
+
+func apiForceRemoveLocks() (int, string) {
+	conn := CreateZkConn()
+	defer conn.Close()
+	err := models.ForceRemoveLock(conn, globalEnv.ProductName)
+	if err != nil {
+		log.Warning(errors.ErrorStack(err))
+		return 500, err.Error()
+	}
 	return jsonRetSucc()
 }
