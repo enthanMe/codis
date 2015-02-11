@@ -110,10 +110,7 @@ func apiInitSlots(r *http.Request) (int, string) {
 	defer conn.Close()
 
 	if !isForce {
-		s, err := models.Slots(conn, globalEnv.ProductName)
-		if err != nil {
-			return 500, err.Error()
-		}
+		s, _ := models.Slots(conn, globalEnv.ProductName)
 		if len(s) > 0 {
 			return 500, "slots already initialized, use 'force' flag and try again."
 		}

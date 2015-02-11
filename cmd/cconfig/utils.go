@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/juju/errors"
+	log "github.com/ngaut/logging"
 )
 
 const (
@@ -41,6 +42,10 @@ func callApi(method HttpMethod, apiPath string, params interface{}, retVal inter
 	}
 
 	resp, err := client.Do(req)
+	if err != nil {
+		log.Error("can't connect to dashboard, please check 'dashboard_addr' is corrent in config file")
+		return err
+	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)

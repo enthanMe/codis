@@ -142,7 +142,11 @@ func pageSlots(r render.Render) {
 }
 
 func createDashboardNode() error {
-	zkPath := fmt.Sprintf("/zk/codis/db_%s/dashboard", globalEnv.ProductName)
+	// make sure root dir is exists
+	rootDir := fmt.Sprintf("/zk/codis/db_%s", globalEnv.ProductName)
+	zkhelper.CreateRecursive(globalEnv.ZkConn, rootDir, "", 0, zkhelper.DefaultDirACLs())
+
+	zkPath := fmt.Sprintf("%s/dashboard", rootDir)
 	// make sure we're the only one dashboard
 	if exists, _, _ := globalEnv.ZkConn.Exists(zkPath); exists {
 		data, _, _ := globalEnv.ZkConn.Get(zkPath)
