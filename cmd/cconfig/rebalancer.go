@@ -116,17 +116,14 @@ func Rebalance(zkConn zkhelper.Conn, delay int) error {
 				if dest.GroupId != node.GroupId && len(dest.CurSlots) < targetQuota[dest.GroupId] {
 					slot := node.CurSlots[len(node.CurSlots)-1]
 					// create a migration task
-					t := &MigrateTask{
-						MigrateTaskInfo: MigrateTaskInfo{
-							Delay:      delay,
-							FromSlot:   slot,
-							ToSlot:     slot,
-							NewGroupId: dest.GroupId,
-							Status:     "migrating",
-							CreateAt:   strconv.FormatInt(time.Now().Unix(), 10),
-						},
-						stopChan: make(chan struct{}),
-					}
+					t := NewMigrateTask(MigrateTaskInfo{
+						Delay:      delay,
+						FromSlot:   slot,
+						ToSlot:     slot,
+						NewGroupId: dest.GroupId,
+						Status:     MIGRATE_TASK_MIGRATING,
+						CreateAt:   strconv.FormatInt(time.Now().Unix(), 10),
+					})
 					u, err := uuid.NewV4()
 					if err != nil {
 						return errors.Trace(err)
@@ -134,7 +131,7 @@ func Rebalance(zkConn zkhelper.Conn, delay int) error {
 					t.Id = u.String()
 
 					if ok, err := preMigrateCheck(t); ok {
-						//err = RunMigrateTask(t)
+						err := t.run()
 						if err != nil {
 							log.Warning(err)
 							return errors.Trace(err)

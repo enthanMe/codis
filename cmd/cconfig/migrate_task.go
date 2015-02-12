@@ -4,6 +4,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/wandoulabs/codis/pkg/models"
 
 	"github.com/juju/errors"
@@ -23,11 +25,32 @@ type MigrateTaskInfo struct {
 	Id         string `json:"id"`
 }
 
+type SlotMigrateProgress struct {
+	SlotId    int `json:"slot_id"`
+	FromGroup int `json:"from"`
+	ToGroup   int `json:"to"`
+	Remain    int `json:"remain"`
+}
+
+func (p SlotMigrateProgress) String() string {
+	return fmt.Sprintf("migrate Slot: slot_%d From: group_%d To: group_%d remain: %d keys", p.SlotId, p.FromGroup, p.ToGroup, p.Remain)
+}
+
 type MigrateTask struct {
 	MigrateTaskInfo
-	stopChan    chan struct{}
-	zkConn      zkhelper.Conn
-	productName string
+	stopChan     chan struct{}
+	zkConn       zkhelper.Conn
+	productName  string
+	slotMigrator SlotMigrator
+	progressChan chan SlotMigrateProgress
+}
+
+func NewMigrateTask(info MigrateTaskInfo) *MigrateTask {
+	return &MigrateTask{
+		MigrateTaskInfo: info,
+		slotMigrator:    &CodisSlotMigrator{},
+		stopChan:        make(chan struct{}),
+	}
 }
 
 // migrate multi slots
@@ -83,8 +106,10 @@ func (t *MigrateTask) run() error {
 				return err
 			}
 
-			// do real migrate
-			err = MigrateSingleSlot(t.zkConn, slotId, from, to, t.Delay, t.stopChan)
+			err = t.slotMigrator.Migrate(s, from, to, t, func(p SlotMigrateProgress) {
+				// on migrate slot progress
+				log.Info(p)
+			})
 			if err != nil {
 				log.Error(err)
 				return err
@@ -100,6 +125,7 @@ func (t *MigrateTask) run() error {
 			}
 			return nil
 		}()
+
 		if err == ErrStopMigrateByUser {
 			log.Info("stop migration job by user")
 			break
@@ -108,6 +134,7 @@ func (t *MigrateTask) run() error {
 			t.Status = MIGRATE_TASK_ERR
 			return err
 		}
+
 		t.Percent = (slotId - t.FromSlot + 1) * 100 / (t.ToSlot - t.FromSlot + 1)
 		log.Info("total percent:", t.Percent)
 	}

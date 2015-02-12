@@ -135,20 +135,15 @@ func apiRedisStat(param martini.Params) (int, string) {
 
 func apiDoMigrate(taskForm MigrateTaskInfo, param martini.Params) (int, string) {
 	// do migrate async
-	taskForm.Percent = 0
-	taskForm.Status = "pending"
+	taskForm.Status = MIGRATE_TASK_PENDING
 	taskForm.CreateAt = strconv.FormatInt(time.Now().Unix(), 10)
 	u, err := uuid.NewV4()
 	if err != nil {
 		return 500, err.Error()
 	}
 	taskForm.Id = u.String()
-	task := &MigrateTask{
-		MigrateTaskInfo: taskForm,
-		stopChan:        make(chan struct{}),
-	}
+	task := NewMigrateTask(taskForm)
 	log.Info(task)
-
 	// TODO migrate mgr post task
 	return jsonRetSucc()
 }

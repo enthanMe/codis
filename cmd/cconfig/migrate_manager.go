@@ -24,7 +24,7 @@ const (
 )
 
 type SlotMigrator interface {
-	Migrate(slot *models.Slot, targetGroup int, params interface{}) error
+	Migrate(slot *models.Slot, fromGroup, toGroup int, task *MigrateTask, onProgress func(SlotMigrateProgress)) error
 }
 
 // check if migrate task is valid
@@ -80,10 +80,9 @@ func (m *MigrateManager) PostTask(t *MigrateTask) {
 func (m *MigrateManager) loop() error {
 	for {
 		m.lck.RLock()
-		sz := m.pendingTasks.Len()
 		ele := m.pendingTasks.Front()
 		m.lck.RUnlock()
-		if sz == 0 {
+		if ele == nil {
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}
@@ -91,10 +90,13 @@ func (m *MigrateManager) loop() error {
 		// get pending task, and run
 		m.lck.Lock()
 		m.pendingTasks.Remove(ele)
-		t := ele.Value.(*MigrateTask)
-		m.runningTask = t
 		m.lck.Unlock()
 
+		t := ele.Value.(*MigrateTask)
+		t.zkConn = m.zkConn
+		t.productName = m.productName
+
+		m.runningTask = t
 		log.Info("start migrate task pre-check")
 		if m.preCheck != nil && !m.preCheck(t) {
 			log.Error("migrate task pre-check error", t)
