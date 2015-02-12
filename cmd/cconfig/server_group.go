@@ -63,7 +63,7 @@ func cmdServer(argv []string) (err error) {
 }
 
 func runAddServerGroup(groupId int) error {
-	serverGroup := models.NewServerGroup(globalEnv.ProductName, groupId)
+	serverGroup := models.NewServerGroup(globalEnv.ProductName(), groupId)
 	var v interface{}
 	err := callApi(METHOD_PUT, "/api/server_groups", serverGroup, &v)
 	if err != nil {

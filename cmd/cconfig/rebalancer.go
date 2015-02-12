@@ -22,11 +22,11 @@ type NodeInfo struct {
 }
 
 func getLivingNodeInfos(zkConn zkhelper.Conn) ([]*NodeInfo, error) {
-	groups, err := models.ServerGroups(zkConn, globalEnv.ProductName)
+	groups, err := models.ServerGroups(zkConn, globalEnv.ProductName())
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	slots, err := models.Slots(zkConn, globalEnv.ProductName)
+	slots, err := models.Slots(zkConn, globalEnv.ProductName())
 	slotMap := make(map[int][]int)
 	for _, slot := range slots {
 		if slot.State.Status == models.SLOT_STATUS_ONLINE {

@@ -6,23 +6,21 @@ import (
 	"github.com/c4pt0r/cfg"
 	log "github.com/ngaut/logging"
 	"github.com/ngaut/zkhelper"
-	"github.com/wandoulabs/codis/pkg/utils"
 )
 
-type ZkConnFactoryFunc func() (zkhelper.Conn, error)
-
-type CodisEnv struct {
-	ZkAddr        string
-	ZkConn        zkhelper.Conn
-	ZkLock        zkhelper.ZLocker
-	ZkConnFactory ZkConnFactoryFunc
-
-	DashboardAddr string
-	ProductName   string
-	cfg           *cfg.Cfg
+type Env interface {
+	ProductName() string
+	DashboardAddr() string
+	NewZkConn() (zkhelper.Conn, error)
 }
 
-func LoadCodisEnv(cfg *cfg.Cfg) *CodisEnv {
+type CodisEnv struct {
+	zkAddr        string
+	dashboardAddr string
+	productName   string
+}
+
+func LoadCodisEnv(cfg *cfg.Cfg) Env {
 	if cfg == nil {
 		log.Fatal("config error")
 	}
@@ -43,22 +41,21 @@ func LoadCodisEnv(cfg *cfg.Cfg) *CodisEnv {
 		log.Fatal(err)
 	}
 
-	zkConn, err := zkhelper.ConnectToZk(zkAddr)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	zkLock := utils.GetZkLock(zkConn, productName)
-
 	return &CodisEnv{
-		ZkAddr:        zkAddr,
-		ZkConn:        zkConn,
-		ZkLock:        zkLock,
-		DashboardAddr: dashboardAddr,
-		ProductName:   productName,
-		ZkConnFactory: func() (zkhelper.Conn, error) {
-			return zkhelper.ConnectToZk(zkAddr)
-		},
-		cfg: cfg,
+		zkAddr:        zkAddr,
+		dashboardAddr: dashboardAddr,
+		productName:   productName,
 	}
+}
+
+func (e *CodisEnv) ProductName() string {
+	return e.productName
+}
+
+func (e *CodisEnv) DashboardAddr() string {
+	return e.dashboardAddr
+}
+
+func (e *CodisEnv) NewZkConn() (zkhelper.Conn, error) {
+	return zkhelper.ConnectToZk(e.zkAddr)
 }

@@ -24,7 +24,7 @@ import (
 
 // global objects
 var (
-	globalEnv  *env.CodisEnv
+	globalEnv  env.Env
 	livingNode string
 )
 
@@ -55,10 +55,6 @@ commands:
 func Fatal(msg interface{}) {
 	// cleanup
 	releaseDashboardNode()
-	// try unlock force
-	if globalEnv != nil && globalEnv.ZkLock != nil {
-		globalEnv.ZkLock.Unlock()
-	}
 
 	switch msg.(type) {
 	case string:
@@ -98,7 +94,6 @@ func main() {
 		Fatal("ctrl-c or SIGTERM found, exit")
 	}()
 
-	//	globalEnv.ProductName, _ = config.ReadString("product", "test")
 	args, err := docopt.Parse(usage, nil, true, "codis config v0.1", true)
 	if err != nil {
 		log.Error(err)

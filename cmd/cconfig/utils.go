@@ -28,7 +28,7 @@ func callApi(method HttpMethod, apiPath string, params interface{}, retVal inter
 	if apiPath[0] != '/' {
 		return errors.New("api path must starts with /")
 	}
-	url := "http://" + globalEnv.DashboardAddr + apiPath
+	url := "http://" + globalEnv.DashboardAddr() + apiPath
 	client := &http.Client{Transport: http.DefaultTransport}
 
 	b, err := json.Marshal(params)

@@ -47,14 +47,14 @@ options:
 		logFileName = args["--http-log"].(string)
 	}
 
-	runDashboard(globalEnv.DashboardAddr, logFileName)
+	runDashboard(globalEnv.DashboardAddr(), logFileName)
 	return nil
 }
 
 var proxiesSpeed int64
 
 func CreateZkConn() zkhelper.Conn {
-	conn, _ := globalEnv.ZkConnFactory()
+	conn, _ := globalEnv.NewZkConn()
 	return conn
 }
 
@@ -83,7 +83,7 @@ func jsonRetSucc() (int, string) {
 func getAllProxyOps() int64 {
 	conn := CreateZkConn()
 	defer conn.Close()
-	proxies, err := models.ProxyList(conn, globalEnv.ProductName, nil)
+	proxies, err := models.ProxyList(conn, globalEnv.ProductName(), nil)
 	if err != nil {
 		log.Warning(err)
 		return -1
@@ -104,7 +104,7 @@ func getAllProxyOps() int64 {
 func getAllProxyDebugVars() map[string]map[string]interface{} {
 	conn := CreateZkConn()
 	defer conn.Close()
-	proxies, err := models.ProxyList(conn, globalEnv.ProductName, nil)
+	proxies, err := models.ProxyList(conn, globalEnv.ProductName(), nil)
 	if err != nil {
 		log.Warning(err)
 		return nil
@@ -142,19 +142,22 @@ func pageSlots(r render.Render) {
 }
 
 func createDashboardNode() error {
+	conn := CreateZkConn()
+	defer conn.Close()
+
 	// make sure root dir is exists
 	rootDir := fmt.Sprintf("/zk/codis/db_%s", globalEnv.ProductName)
-	zkhelper.CreateRecursive(globalEnv.ZkConn, rootDir, "", 0, zkhelper.DefaultDirACLs())
+	zkhelper.CreateRecursive(conn, rootDir, "", 0, zkhelper.DefaultDirACLs())
 
 	zkPath := fmt.Sprintf("%s/dashboard", rootDir)
 	// make sure we're the only one dashboard
-	if exists, _, _ := globalEnv.ZkConn.Exists(zkPath); exists {
-		data, _, _ := globalEnv.ZkConn.Get(zkPath)
+	if exists, _, _ := conn.Exists(zkPath); exists {
+		data, _, _ := conn.Get(zkPath)
 		return errors.New("dashboard already running: " + string(data))
 	}
 
 	content := fmt.Sprintf(`{"addr": "%v", "pid": %v}`, globalEnv.DashboardAddr, os.Getpid())
-	pathCreated, err := globalEnv.ZkConn.Create(zkPath, []byte(content),
+	pathCreated, err := conn.Create(zkPath, []byte(content),
 		zk.FlagEphemeral, zkhelper.DefaultACLs())
 
 	log.Info("dashboard node created:", pathCreated, string(content))
@@ -166,10 +169,13 @@ func createDashboardNode() error {
 }
 
 func releaseDashboardNode() {
+	conn := CreateZkConn()
+	defer conn.Close()
+
 	zkPath := fmt.Sprintf("/zk/codis/db_%s/dashboard", globalEnv.ProductName)
-	if exists, _, _ := globalEnv.ZkConn.Exists(zkPath); exists {
+	if exists, _, _ := conn.Exists(zkPath); exists {
 		log.Info("clean dashboard node")
-		globalEnv.ZkConn.Delete(zkPath, 0)
+		conn.Delete(zkPath, 0)
 	}
 }
 

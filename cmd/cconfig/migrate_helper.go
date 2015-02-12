@@ -47,11 +47,11 @@ func sendRedisMigrateCmd(c redis.Conn, slotId int, toAddr string) (int, int, err
 var ErrStopMigrateByUser = errors.New("migration stop by user")
 
 func MigrateSingleSlot(zkConn zkhelper.Conn, slotId, fromGroup, toGroup int, delay int, stopChan <-chan struct{}) error {
-	groupFrom, err := models.GetGroup(zkConn, globalEnv.ProductName, fromGroup)
+	groupFrom, err := models.GetGroup(zkConn, globalEnv.ProductName(), fromGroup)
 	if err != nil {
 		return err
 	}
-	groupTo, err := models.GetGroup(zkConn, globalEnv.ProductName, toGroup)
+	groupTo, err := models.GetGroup(zkConn, globalEnv.ProductName(), toGroup)
 	if err != nil {
 		return err
 	}

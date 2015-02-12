@@ -48,7 +48,7 @@ func apiOverview() (int, string) {
 	defer conn.Close()
 
 	// get all server groups
-	groups, err := models.ServerGroups(conn, globalEnv.ProductName)
+	groups, err := models.ServerGroups(conn, globalEnv.ProductName())
 	if err != nil {
 		log.Warning("get server groups error, maybe there is no any server groups? err:", err)
 		return 500, err.Error()
@@ -88,7 +88,7 @@ func apiOverview() (int, string) {
 func apiGetServerGroupList() (int, string) {
 	conn := CreateZkConn()
 	defer conn.Close()
-	groups, err := models.ServerGroups(conn, globalEnv.ProductName)
+	groups, err := models.ServerGroups(conn, globalEnv.ProductName())
 	if err != nil {
 		log.Warning(err)
 		return 500, err.Error()
@@ -110,13 +110,13 @@ func apiInitSlots(r *http.Request) (int, string) {
 	defer conn.Close()
 
 	if !isForce {
-		s, _ := models.Slots(conn, globalEnv.ProductName)
+		s, _ := models.Slots(conn, globalEnv.ProductName())
 		if len(s) > 0 {
 			return 500, "slots already initialized, use 'force' flag and try again."
 		}
 	}
 
-	if err := models.InitSlotSet(conn, globalEnv.ProductName, models.DEFAULT_SLOT_NUM); err != nil {
+	if err := models.InitSlotSet(conn, globalEnv.ProductName(), models.DEFAULT_SLOT_NUM); err != nil {
 		log.Warning(err)
 		return 500, err.Error()
 	}
@@ -217,7 +217,7 @@ func apiGetServerGroup(param martini.Params) (int, string) {
 	}
 	conn := CreateZkConn()
 	defer conn.Close()
-	group, err := models.GetGroup(conn, globalEnv.ProductName, groupId)
+	group, err := models.GetGroup(conn, globalEnv.ProductName(), groupId)
 	if err != nil {
 		log.Warning(err)
 		return 500, err.Error()
@@ -230,7 +230,7 @@ func apiMigrateStatus() (int, string) {
 	conn := CreateZkConn()
 	defer conn.Close()
 
-	migrateSlots, err := models.GetMigratingSlots(conn, globalEnv.ProductName)
+	migrateSlots, err := models.GetMigratingSlots(conn, globalEnv.ProductName())
 	if err != nil {
 		log.Warning("get slots info error, maybe init slots first? err: ", err)
 		return 500, err.Error()
@@ -276,7 +276,7 @@ func apiGetRedisSlotInfoFromGroupId(param martini.Params) (int, string) {
 	conn := CreateZkConn()
 	defer conn.Close()
 
-	g, err := models.GetGroup(conn, globalEnv.ProductName, groupId)
+	g, err := models.GetGroup(conn, globalEnv.ProductName(), groupId)
 	if err != nil {
 		log.Warning(err)
 		return 500, err.Error()
@@ -313,7 +313,7 @@ func apiRemoveServerGroup(param martini.Params) (int, string) {
 	conn := CreateZkConn()
 	defer conn.Close()
 
-	lock := utils.GetZkLock(conn, globalEnv.ProductName)
+	lock := utils.GetZkLock(conn, globalEnv.ProductName())
 	lock.Lock(fmt.Sprintf("remove group %s", param["id"]))
 
 	defer func() {
@@ -324,7 +324,7 @@ func apiRemoveServerGroup(param martini.Params) (int, string) {
 	}()
 
 	groupId, _ := strconv.Atoi(param["id"])
-	serverGroup := models.NewServerGroup(globalEnv.ProductName, groupId)
+	serverGroup := models.NewServerGroup(globalEnv.ProductName(), groupId)
 	if err := serverGroup.Remove(conn); err != nil {
 		log.Error(errors.ErrorStack(err))
 		return 500, err.Error()
@@ -338,7 +338,7 @@ func apiAddServerGroup(newGroup models.ServerGroup) (int, string) {
 	conn := CreateZkConn()
 	defer conn.Close()
 
-	lock := utils.GetZkLock(conn, globalEnv.ProductName)
+	lock := utils.GetZkLock(conn, globalEnv.ProductName())
 	lock.Lock(fmt.Sprintf("add group %+v", newGroup))
 
 	defer func() {
@@ -348,7 +348,7 @@ func apiAddServerGroup(newGroup models.ServerGroup) (int, string) {
 		}
 	}()
 
-	newGroup.ProductName = globalEnv.ProductName
+	newGroup.ProductName = globalEnv.ProductName()
 
 	exists, err := newGroup.Exists(conn)
 	if err != nil {
@@ -373,7 +373,7 @@ func apiAddServerToGroup(server models.Server, param martini.Params) (int, strin
 	conn := CreateZkConn()
 	defer conn.Close()
 
-	lock := utils.GetZkLock(conn, globalEnv.ProductName)
+	lock := utils.GetZkLock(conn, globalEnv.ProductName())
 	lock.Lock(fmt.Sprintf("add server to group,  %+v", server))
 	defer func() {
 		err := lock.Unlock()
@@ -382,7 +382,7 @@ func apiAddServerToGroup(server models.Server, param martini.Params) (int, strin
 		}
 	}()
 	// check group exists first
-	serverGroup := models.NewServerGroup(globalEnv.ProductName, groupId)
+	serverGroup := models.NewServerGroup(globalEnv.ProductName(), groupId)
 
 	exists, err := serverGroup.Exists(conn)
 	if err != nil {
@@ -405,7 +405,7 @@ func apiPromoteServer(server models.Server, param martini.Params) (int, string) 
 	conn := CreateZkConn()
 	defer conn.Close()
 
-	lock := utils.GetZkLock(conn, globalEnv.ProductName)
+	lock := utils.GetZkLock(conn, globalEnv.ProductName())
 	lock.Lock(fmt.Sprintf("promote server %+v", server))
 	defer func() {
 		err := lock.Unlock()
@@ -414,7 +414,7 @@ func apiPromoteServer(server models.Server, param martini.Params) (int, string) 
 		}
 	}()
 
-	group, err := models.GetGroup(conn, globalEnv.ProductName, server.GroupId)
+	group, err := models.GetGroup(conn, globalEnv.ProductName(), server.GroupId)
 	if err != nil {
 		log.Warning(err)
 		return 500, err.Error()
@@ -434,7 +434,7 @@ func apiRemoveServerFromGroup(server models.Server, param martini.Params) (int, 
 	conn := CreateZkConn()
 	defer conn.Close()
 
-	lock := utils.GetZkLock(conn, globalEnv.ProductName)
+	lock := utils.GetZkLock(conn, globalEnv.ProductName())
 	lock.Lock(fmt.Sprintf("remove server from group, %+v", server))
 	defer func() {
 		err := lock.Unlock()
@@ -443,7 +443,7 @@ func apiRemoveServerFromGroup(server models.Server, param martini.Params) (int, 
 		}
 	}()
 
-	serverGroup := models.NewServerGroup(globalEnv.ProductName, groupId)
+	serverGroup := models.NewServerGroup(globalEnv.ProductName(), groupId)
 	err := serverGroup.RemoveServer(conn, server.Addr)
 	if err != nil {
 		log.Warning(err)
@@ -455,7 +455,7 @@ func apiRemoveServerFromGroup(server models.Server, param martini.Params) (int, 
 func apiSetProxyStatus(proxy models.ProxyInfo, param martini.Params) (int, string) {
 	conn := CreateZkConn()
 	defer conn.Close()
-	err := models.SetProxyStatus(conn, globalEnv.ProductName, proxy.Id, proxy.State)
+	err := models.SetProxyStatus(conn, globalEnv.ProductName(), proxy.Id, proxy.State)
 	if err != nil {
 		log.Warning(err)
 		return 500, err.Error()
@@ -467,7 +467,7 @@ func apiGetProxyList(param martini.Params) (int, string) {
 	conn := CreateZkConn()
 	defer conn.Close()
 
-	proxies, err := models.ProxyList(conn, globalEnv.ProductName, nil)
+	proxies, err := models.ProxyList(conn, globalEnv.ProductName(), nil)
 	if err != nil {
 		log.Warning(err)
 		return 500, err.Error()
@@ -484,7 +484,7 @@ func apiGetSingleSlot(param martini.Params) (int, string) {
 	conn := CreateZkConn()
 	defer conn.Close()
 
-	slot, err := models.GetSlot(conn, globalEnv.ProductName, id)
+	slot, err := models.GetSlot(conn, globalEnv.ProductName(), id)
 	if err != nil {
 		log.Warning(errors.Trace(err))
 		return 500, err.Error()
@@ -497,7 +497,7 @@ func apiGetSingleSlot(param martini.Params) (int, string) {
 func apiGetSlots() (int, string) {
 	conn := CreateZkConn()
 	defer conn.Close()
-	slots, err := models.Slots(conn, globalEnv.ProductName)
+	slots, err := models.Slots(conn, globalEnv.ProductName())
 	if err != nil {
 		log.Warning("get slot info error, maybe init slots first? err:", err)
 		return 500, err.Error()
@@ -510,7 +510,7 @@ func apiSlotRangeSet(task RangeSetTask) (int, string) {
 	conn := CreateZkConn()
 	defer conn.Close()
 
-	lock := utils.GetZkLock(conn, globalEnv.ProductName)
+	lock := utils.GetZkLock(conn, globalEnv.ProductName())
 	lock.Lock(fmt.Sprintf("set slot range, %+v", task))
 	defer func() {
 		err := lock.Unlock()
@@ -524,7 +524,7 @@ func apiSlotRangeSet(task RangeSetTask) (int, string) {
 		task.Status = string(models.SLOT_STATUS_ONLINE)
 	}
 
-	err := models.SetSlotRange(conn, globalEnv.ProductName, task.FromSlot, task.ToSlot, task.NewGroupId, models.SlotStatus(task.Status))
+	err := models.SetSlotRange(conn, globalEnv.ProductName(), task.FromSlot, task.ToSlot, task.NewGroupId, models.SlotStatus(task.Status))
 
 	if err != nil {
 		log.Warning(err)
@@ -541,7 +541,7 @@ func apiActionGC(param martini.Params) (int, string) {
 
 	conn := CreateZkConn()
 	defer conn.Close()
-	lock := utils.GetZkLock(conn, globalEnv.ProductName)
+	lock := utils.GetZkLock(conn, globalEnv.ProductName())
 	lock.Lock(fmt.Sprintf("action gc"))
 	defer func() {
 		err := lock.Unlock()
@@ -552,9 +552,9 @@ func apiActionGC(param martini.Params) (int, string) {
 
 	var err error
 	if keep > 0 {
-		err = models.ActionGC(conn, globalEnv.ProductName, models.GC_TYPE_N, keep)
+		err = models.ActionGC(conn, globalEnv.ProductName(), models.GC_TYPE_N, keep)
 	} else if secs > 0 {
-		err = models.ActionGC(conn, globalEnv.ProductName, models.GC_TYPE_SEC, secs)
+		err = models.ActionGC(conn, globalEnv.ProductName(), models.GC_TYPE_SEC, secs)
 	}
 	if err != nil {
 		return 500, err.Error()
@@ -565,7 +565,7 @@ func apiActionGC(param martini.Params) (int, string) {
 func apiForceRemoveLocks() (int, string) {
 	conn := CreateZkConn()
 	defer conn.Close()
-	err := models.ForceRemoveLock(conn, globalEnv.ProductName)
+	err := models.ForceRemoveLock(conn, globalEnv.ProductName())
 	if err != nil {
 		log.Warning(errors.ErrorStack(err))
 		return 500, err.Error()
