@@ -93,7 +93,7 @@ func (m *CodisSlotMigrator) Migrate(slot *models.Slot, fromGroup, toGroup int, t
 			}
 		}
 		_, remain, err = sendRedisMigrateCmd(c, slot.Id, toMaster.Addr)
-		if remain%500 == 0 && remain >= 0 {
+		if remain >= 0 {
 			onProgress(SlotMigrateProgress{
 				SlotId:    slot.Id,
 				FromGroup: fromGroup,

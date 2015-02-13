@@ -146,7 +146,7 @@ func apiDoMigrate(taskForm MigrateTaskInfo, param martini.Params) (int, string) 
 	taskForm.Id = u.String()
 	task := NewMigrateTask(taskForm)
 	log.Info(task)
-	// TODO migrate mgr post task
+	globalMigrateManager.PostTask(task)
 	return jsonRetSucc()
 }
 

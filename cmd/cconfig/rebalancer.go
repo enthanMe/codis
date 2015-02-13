@@ -131,6 +131,7 @@ func Rebalance(zkConn zkhelper.Conn, delay int) error {
 					t.Id = u.String()
 
 					if ok, err := preMigrateCheck(t); ok {
+						// do migrate
 						err := t.run()
 						if err != nil {
 							log.Warning(err)

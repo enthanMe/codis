@@ -108,7 +108,9 @@ func (t *MigrateTask) run() error {
 
 			err = t.slotMigrator.Migrate(s, from, to, t, func(p SlotMigrateProgress) {
 				// on migrate slot progress
-				log.Info(p)
+				if p.Remain%500 == 0 {
+					log.Info(p)
+				}
 			})
 			if err != nil {
 				log.Error(err)
