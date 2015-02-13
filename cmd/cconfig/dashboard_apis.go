@@ -21,6 +21,8 @@ import (
 	log "github.com/ngaut/logging"
 )
 
+var globalMigrateManager *MigrateManager
+
 type RangeSetTask struct {
 	FromSlot   int    `json:"from"`
 	ToSlot     int    `json:"to"`
@@ -65,7 +67,7 @@ func apiOverview() (int, string) {
 	}
 
 	info := make(map[string]interface{})
-	info["product"] = globalEnv.ProductName
+	info["product"] = globalEnv.ProductName()
 	info["ops"] = proxiesSpeed
 
 	redisInfos := make([]map[string]string, 0)
@@ -384,8 +386,12 @@ func apiAddServerToGroup(server models.Server, param martini.Params) (int, strin
 		log.Warning(err)
 		return 500, err.Error()
 	}
+
+	// create new group if not exists
 	if !exists {
-		return jsonRetFail(-1, "group not exists")
+		if err := serverGroup.Create(conn); err != nil {
+			return 500, err.Error()
+		}
 	}
 
 	if err := serverGroup.AddServer(conn, &server); err != nil {

@@ -28,7 +28,7 @@ type SlotMigrator interface {
 }
 
 // check if migrate task is valid
-type MigrateTaskCheckFunc func(t *MigrateTask) bool
+type MigrateTaskCheckFunc func(t *MigrateTask) (bool, error)
 
 // migrate task will store on zk
 type MigrateManager struct {
@@ -97,10 +97,15 @@ func (m *MigrateManager) loop() error {
 		t.productName = m.productName
 
 		m.runningTask = t
-		log.Info("start migrate task pre-check")
-		if m.preCheck != nil && !m.preCheck(t) {
-			log.Error("migrate task pre-check error", t)
-			continue
+		if m.preCheck != nil {
+			log.Info("start migrate task pre-check")
+			if ok, err := m.preCheck(t); !ok {
+				if err != nil {
+					log.Error(err)
+				}
+				log.Error("migrate task pre-check error", t)
+				continue
+			}
 		}
 		log.Info("migrate task pre-check done")
 		// do migrate
