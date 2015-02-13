@@ -186,7 +186,7 @@ func apiRebalance(param martini.Params) (int, string) {
 		defer conn.Close()
 
 		if err := Rebalance(conn, 0); err != nil {
-			log.Warning(err.Error())
+			log.Warning(errors.ErrorStack(err))
 		}
 	}()
 

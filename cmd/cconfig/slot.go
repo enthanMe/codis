@@ -177,5 +177,11 @@ func runSlotMigrate(fromSlotId, toSlotId int, newGroupId int, delay int) error {
 }
 
 func runRebalance(delay int) error {
+	var v interface{}
+	err := callApi(METHOD_POST, "/api/rebalance", nil, &v)
+	if err != nil {
+		return err
+	}
+	fmt.Println(jsonify(v))
 	return nil
 }

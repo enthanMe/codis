@@ -50,6 +50,8 @@ func NewMigrateTask(info MigrateTaskInfo) *MigrateTask {
 		MigrateTaskInfo: info,
 		slotMigrator:    &CodisSlotMigrator{},
 		stopChan:        make(chan struct{}),
+		productName:     globalEnv.ProductName(),
+		zkConn:          CreateZkConn(),
 	}
 }
 
@@ -146,6 +148,7 @@ func (t *MigrateTask) run() error {
 }
 
 func preMigrateCheck(t *MigrateTask) (bool, error) {
+	log.Info(t)
 	conn := CreateZkConn()
 	defer conn.Close()
 

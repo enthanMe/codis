@@ -110,6 +110,7 @@ func Rebalance(zkConn zkhelper.Conn, delay int) error {
 	if err != nil {
 		return errors.Trace(err)
 	}
+	log.Info("start rebalance")
 	for _, node := range livingNodes {
 		for len(node.CurSlots) > targetQuota[node.GroupId] {
 			for _, dest := range livingNodes {
@@ -147,5 +148,6 @@ func Rebalance(zkConn zkhelper.Conn, delay int) error {
 			}
 		}
 	}
+	log.Info("rebalance finish")
 	return nil
 }
