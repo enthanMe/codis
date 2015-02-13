@@ -47,7 +47,7 @@ func (m *MigrateManager) createNode() error {
 	_, err := m.zkConn.Create(fmt.Sprintf("/zk/codis/db_%s/migrate_manager", m.productName),
 		[]byte(""), zk.FlagEphemeral, zkhelper.DefaultDirACLs())
 	if err != nil {
-		log.Error(err)
+		log.Error("there is another dashboard exists! ERR:", err)
 	}
 	return nil
 }
